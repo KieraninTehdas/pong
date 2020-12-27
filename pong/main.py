@@ -6,10 +6,10 @@ from pygame.constants import K_UP, K_DOWN
 
 class Ball(pygame.sprite.Sprite):
     def __init__(
-            self,
-            initial_x_velocity: int,
-            initial_y_velocity: int,
-            world_dimensions: Tuple[int, int],
+        self,
+        initial_x_velocity: int,
+        initial_y_velocity: int,
+        world_dimensions: Tuple[int, int],
     ):
         super().__init__()
         self.surf = pygame.Surface((10, 10))
@@ -27,8 +27,8 @@ class Ball(pygame.sprite.Sprite):
 
     def update(self) -> None:
         if (
-                self.rect.top == 0
-                or self.rect.bottom == self.containing_world_dimensions[1]
+            self.rect.top == 0
+            or self.rect.bottom == self.containing_world_dimensions[1]
         ):
             self.velocity = (self.velocity[0], -self.velocity[1])
 
@@ -39,7 +39,7 @@ class Ball(pygame.sprite.Sprite):
 
     def is_out_of_bounds(self) -> bool:
         return (
-                self.rect.right < 0 or self.rect.left >= self.containing_world_dimensions[0]
+            self.rect.right < 0 or self.rect.left >= self.containing_world_dimensions[0]
         )
 
     def reset(self, initial_x_velocity: int, initial_y_velocity: int):
@@ -55,11 +55,11 @@ class Ball(pygame.sprite.Sprite):
 
 class Bat(pygame.sprite.Sprite):
     def __init__(
-            self,
-            initial_position: Tuple[int, int],
-            world_dimensions: Tuple[int, int],
-            key_up: pygame.constants = K_UP,
-            key_down: pygame.constants = K_DOWN,
+        self,
+        initial_position: Tuple[int, int],
+        world_dimensions: Tuple[int, int],
+        key_up: pygame.constants = K_UP,
+        key_down: pygame.constants = K_DOWN,
     ):
         super().__init__()
         self.surf = pygame.Surface((10, 30))
@@ -84,9 +84,9 @@ class Bat(pygame.sprite.Sprite):
 
 class ComputerBat(pygame.sprite.Sprite):
     def __init__(
-            self,
-            initial_position: Tuple[int, int],
-            world_dimensions: Tuple[int, int],
+        self,
+        initial_position: Tuple[int, int],
+        world_dimensions: Tuple[int, int],
     ):
         super().__init__()
         self.surf = pygame.Surface((10, 30))
@@ -117,7 +117,7 @@ class Game:
         self.balls = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
         self.ball = Ball(
-            initial_x_velocity=-5,
+            initial_x_velocity=1,
             initial_y_velocity=5,
             world_dimensions=(self.width, self.height),
         )
@@ -138,15 +138,15 @@ class Game:
         self.balls.add(self.ball)
         self.bats.add([player1_bat, player2_bat])
 
-        self.match_is_over = False
-
     def on_event(self, event: pygame.event.Event):
         if event.type == pygame.QUIT:
             self._is_running = False
 
     def on_loop(self):
         if True in {ball.is_out_of_bounds() for ball in self.balls}:
-            self.match_is_over = True
+            print("Ball went out")
+            self.ball.reset(10, 5)
+            return
 
         if pygame.sprite.spritecollideany(self.ball, self.bats):
             self.ball.on_collision()
@@ -166,16 +166,11 @@ class Game:
 
     def run(self):
         while self._is_running:
-            while not self.match_is_over:
-                for event in pygame.event.get():
-                    self.on_event(event)
-                self.on_loop()
-                self.on_render()
-                self.game_clock.tick(self._fps)
-
-            print("Ball went out")
-            self.ball.reset(5, 5)
-            self.match_is_over = False
+            for event in pygame.event.get():
+                self.on_event(event)
+            self.on_loop()
+            self.on_render()
+            self.game_clock.tick(self._fps)
         self.teardown()
 
 
