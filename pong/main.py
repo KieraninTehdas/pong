@@ -4,7 +4,8 @@ import time
 from typing import Tuple, Sequence, List
 
 import pygame
-from pygame.constants import K_UP, K_DOWN
+import pygame_menu
+from pygame.constants import K_UP, K_DOWN, K_ESCAPE, K_RETURN
 
 
 class Ball(pygame.sprite.Sprite):
@@ -21,19 +22,17 @@ class Ball(pygame.sprite.Sprite):
             center=(int(world_dimensions[0] / 2), int(world_dimensions[1] / 2) - 10)
         )
         self.speed = speed
-        self.velocity: List[int] = self._normalise_velocity(
+        self.velocity: List[float] = self._normalise_velocity(
             initial_velocity_vector, self.speed
         )
         self.containing_world_dimensions = world_dimensions
 
     @staticmethod
-    def _normalise_velocity(velocity: Sequence[int], speed: int) -> List:
-        norm_factor = int(
-            speed
-            / math.sqrt(
-                sum([velocity_component ** 2 for velocity_component in velocity])
-            )
+    def _normalise_velocity(velocity: Sequence[int], speed: int) -> List[float]:
+        norm_factor = speed / math.sqrt(
+            sum([velocity_component ** 2 for velocity_component in velocity])
         )
+
         return [norm_factor * velocity_component for velocity_component in velocity]
 
     def draw(self, surface: pygame.surface.Surface) -> None:
@@ -72,9 +71,7 @@ class Ball(pygame.sprite.Sprite):
             return 0
 
     def reset(self, initial_velocity_vector: Sequence[int]):
-        self.velocity = self._normalise_velocity(
-            initial_velocity_vector, self.speed
-        )
+        self.velocity = self._normalise_velocity(initial_velocity_vector, self.speed)
         self.rect = self.surf.get_rect()
         self.rect = self.surf.get_rect(
             center=(
@@ -111,24 +108,6 @@ class Bat(pygame.sprite.Sprite):
         if self.rect.bottom < self.world_dimensions[1]:
             if pressed_keys[self.key_down]:
                 self.rect.move_ip(0, 5)
-
-
-class ComputerBat(pygame.sprite.Sprite):
-    def __init__(
-        self,
-        initial_position: Tuple[int, int],
-        world_dimensions: Tuple[int, int],
-    ):
-        super().__init__()
-        self.surf = pygame.Surface((10, 30))
-        self.surf.fill((255, 255, 255))
-        self.rect = self.surf.get_rect(
-            center=(initial_position[0], initial_position[1])
-        )
-        self.world_dimensions = world_dimensions
-
-    def update(self) -> None:
-        pass
 
 
 class Game:
@@ -174,6 +153,19 @@ class Game:
         self.player2_score = 0
         self.winning_player = None
 
+        self.menu = pygame_menu.menu.Menu(300, 400, "Main Menu", theme=pygame_menu.themes.THEME_BLUE)
+        self.menu.add_selector(
+            "Speed: ",
+            [("Slow", 1), ("Medium", 2), ("Fast", 3)],
+            onchange=lambda selected, value: print(
+                f"Selected {selected}, Value {value}"
+            ),
+        )
+        self.menu.add_button("Play", lambda: self.menu.disable())
+        self.menu.add_button(
+            "Quit", lambda: pygame.event.post(pygame.event.Event(pygame.QUIT, {}))
+        )
+
     def _display_winner(self):
         self._display_surf.blit(
             self.font_small.render(
@@ -194,6 +186,14 @@ class Game:
     def on_event(self, event: pygame.event.Event):
         if event.type == pygame.QUIT:
             self._is_running = False
+            return
+
+        pressed_keys = pygame.key.get_pressed()
+
+        if pressed_keys[K_ESCAPE]:
+            self.menu.enable()
+
+
 
     def on_loop(self):
         if self.ball.is_out_of_bounds():
@@ -240,14 +240,20 @@ class Game:
 
     def run(self):
         while self._is_running:
-            for event in pygame.event.get():
-                self.on_event(event)
-            self.on_loop()
-            self.on_render()
-            self.game_clock.tick(self._fps)
+            events = pygame.event.get()
+            if self.menu.is_enabled():
+                self.menu.draw(self._display_surf)
+                self.menu.update(events)
+                pygame.display.update()
+            else:
+                for event in events:
+                    self.on_event(event)
+                self.on_loop()
+                self.on_render()
+                self.game_clock.tick(self._fps)
 
-        if self.winning_player:
-            self._display_winner()
+            if self.winning_player:
+                self._display_winner()
 
         self.teardown()
 
