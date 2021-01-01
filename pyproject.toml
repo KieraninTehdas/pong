@@ -7,6 +7,7 @@ authors = ["Kieran Porter <kieran.porter@snap40.com>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 pygame = "^2.0.1"
+pygame-menu = "^3.3.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

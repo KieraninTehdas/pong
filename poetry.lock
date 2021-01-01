@@ -94,12 +94,35 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "pygame-menu"
+version = "3.3.2"
+description = "A menu for pygame, simple, lightweight and easy to use"
+category = "main"
+optional = false
+python-versions = ">=2.7, <4"
+
+[package.dependencies]
+pygame = ">=1.9.6"
+pyperclip = "*"
+
+[package.extras]
+doc = ["sphinx", "sphinx-rtd-theme"]
+
+[[package]]
 name = "pyparsing"
 version = "2.4.7"
 description = "Python parsing module"
 category = "dev"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+
+[[package]]
+name = "pyperclip"
+version = "1.8.1"
+description = "A cross-platform clipboard module for Python. (Only handles plain text for now.)"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "pytest"
@@ -155,7 +178,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "65d25121a9b7ca9e13f4a19d8fe3962ba3fd8b53958cf108fcd88e6cb400b237"
+content-hash = "72781a9fdbc2d478b08301f86915758e5b19c1e2f6843a43b10c2ae528c6d8a8"
 
 [metadata.files]
 atomicwrites = [
@@ -233,9 +256,16 @@ pygame = [
     {file = "pygame-2.0.1-pp37-pypy37_pp73-manylinux2010_x86_64.whl", hash = "sha256:b812285d23b5644c643a6ae30553a772f935f47f61826660b108b8727936384b"},
     {file = "pygame-2.0.1.tar.gz", hash = "sha256:8b1e7b63f47aafcdd8849933b206778747ef1802bd3d526aca45ed77141e4001"},
 ]
+pygame-menu = [
+    {file = "pygame-menu-3.3.2.tar.gz", hash = "sha256:58cf8714f09b3a48cf576839e71a5bd7fbb326597d33e639f377f1ab85ac97fc"},
+    {file = "pygame_menu-3.3.2-py2.py3-none-any.whl", hash = "sha256:4d7a5edaba03bf7dc3ea277fb507d7edff931170a80935f23110ae6ddf631a80"},
+]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
+]
+pyperclip = [
+    {file = "pyperclip-1.8.1.tar.gz", hash = "sha256:9abef1e79ce635eb62309ecae02dfb5a3eb952fa7d6dce09c1aef063f81424d3"},
 ]
 pytest = [
     {file = "pytest-5.4.3-py3-none-any.whl", hash = "sha256:5c0db86b698e8f170ba4582a492248919255fcd4c79b1ee64ace34301fb589a1"},
