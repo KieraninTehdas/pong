@@ -1,11 +1,11 @@
 import math
 import random
 import time
-from typing import Tuple, Sequence, List
+from typing import Tuple, Sequence, List, Union
 
 import pygame
 import pygame_menu
-from pygame.constants import K_UP, K_DOWN, K_ESCAPE, K_RETURN
+from pygame.constants import K_UP, K_DOWN, K_ESCAPE
 
 
 class Ball(pygame.sprite.Sprite):
@@ -28,11 +28,12 @@ class Ball(pygame.sprite.Sprite):
         self.containing_world_dimensions = world_dimensions
 
     @staticmethod
-    def _normalise_velocity(velocity: Sequence[int], speed: int) -> List[float]:
+    def _normalise_velocity(
+        velocity: Sequence[Union[int, float]], speed: int
+    ) -> List[float]:
         norm_factor = speed / math.sqrt(
             sum([velocity_component ** 2 for velocity_component in velocity])
         )
-
         return [norm_factor * velocity_component for velocity_component in velocity]
 
     def draw(self, surface: pygame.surface.Surface) -> None:
@@ -80,6 +81,10 @@ class Ball(pygame.sprite.Sprite):
             )
         )
 
+    def update_speed(self, new_speed: int):
+        self.speed = new_speed
+        self.velocity = self._normalise_velocity(self.velocity, self.speed)
+
 
 class Bat(pygame.sprite.Sprite):
     def __init__(
@@ -88,6 +93,7 @@ class Bat(pygame.sprite.Sprite):
         world_dimensions: Tuple[int, int],
         key_up: pygame.constants = K_UP,
         key_down: pygame.constants = K_DOWN,
+        speed: Union[float, int] = 5
     ):
         super().__init__()
         self.surf = pygame.Surface((10, 30))
@@ -98,29 +104,31 @@ class Bat(pygame.sprite.Sprite):
         self.world_dimensions = world_dimensions
         self.key_up = key_up
         self.key_down = key_down
+        self.speed = speed
 
     def update(self) -> None:
         pressed_keys = pygame.key.get_pressed()
 
         if self.rect.top > 0:
             if pressed_keys[self.key_up]:
-                self.rect.move_ip(0, -5)
+                self.rect.move_ip(0, -self.speed)
         if self.rect.bottom < self.world_dimensions[1]:
             if pressed_keys[self.key_down]:
-                self.rect.move_ip(0, 5)
+                self.rect.move_ip(0, self.speed)
 
 
 class Game:
-    ball_speeds = {
-        "slow": 5,
-        "medium": 10,
-        "fast": 15
-    }
+    ball_speeds = sorted(
+        [("slow", 5), ("medium", 10), ("fast", 15)], key=lambda element: element[1]
+    )
+    bat_speeds = sorted(
+        [("slow", 5), ("medium", 10), ("fast", 15)], key=lambda element: element[1]
+    )
 
     pygame.init()
 
     def __init__(self):
-        print([(key, '') for key in self.ball_speeds.keys()])
+        # Initialise basic py game stuff
         self.font_small = pygame.font.SysFont("Verdana", 20)
         self.width = 640
         self.height = 480
@@ -132,12 +140,14 @@ class Game:
         self._fps = 30
         self.game_clock = pygame.time.Clock()
 
+        # Initialise the bats and ball(s) and associated sprite groups
         self.bats = pygame.sprite.Group()
         self.balls = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
         self.ball = Ball(
             initial_velocity_vector=self._get_random_vector(),
             world_dimensions=(self.width, self.height),
+            speed=self.ball_speeds[1][1],
         )
 
         player1_bat = Bat(
@@ -156,33 +166,50 @@ class Game:
         self.balls.add(self.ball)
         self.bats.add([player1_bat, player2_bat])
 
+        # Initialise player state
         self.player1_score = 0
         self.player2_score = 0
         self.winning_player = None
 
         # Setup the game menu
-        self.menu = pygame_menu.menu.Menu(300, 400, "Main Menu", theme=pygame_menu.themes.THEME_BLUE)
-        self.menu.add_selector(
-            "Speed: ",
-            [(key, value) for key, value in self.ball_speeds.items()],
-            onchange=lambda selected, value: print(
-                f"Selected {selected}, Value {value}"
-            ),
+        self.menu = pygame_menu.menu.Menu(
+            300, 400, "Main Menu", theme=pygame_menu.themes.THEME_BLUE
         )
+        self.menu.add_selector(
+            "Ball Speed: ",
+            self.ball_speeds,
+            onchange=lambda _, speed: self.ball.update_speed(speed),
+            default=1,
+        )
+        self.menu.add_selector(
+            "Bat Speed: ",
+            self.ball_speeds,
+            onchange=lambda _, speed: self._update_bat_speeds(speed),
+            default=1,
+        )
+
         self.menu.add_button("Play", lambda: self.menu.disable())
         self.menu.add_button(
             "Quit", lambda: pygame.event.post(pygame.event.Event(pygame.QUIT, {}))
         )
 
+    def _update_bat_speeds(self, new_speed):
+        for bat in self.bats:
+            bat.speed = new_speed
+
     def _display_winner(self):
+        winner_text = self.font_small.render(
+            f"{self.winning_player} is the winner!", True, (255, 255, 255)
+        )
+        text_width = winner_text.get_rect().width
+        text_height = winner_text.get_rect().height
         self._display_surf.blit(
-            self.font_small.render(
-                f"{self.winning_player} is the winner!", True, (255, 255, 255)
-            ),
-            ((self.width / 2) - 30, self.height / 2),
+            winner_text,
+            ((self.width - text_width) / 2, (self.height - text_height) / 2),
         )
         pygame.display.update()
         time.sleep(2)
+
 
     @staticmethod
     def _get_random_vector(min: int = -5, max: int = 5, dimensions: int = 2):
@@ -200,8 +227,6 @@ class Game:
 
         if pressed_keys[K_ESCAPE]:
             self.menu.enable()
-
-
 
     def on_loop(self):
         if self.ball.is_out_of_bounds():
