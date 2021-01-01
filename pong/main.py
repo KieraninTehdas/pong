@@ -111,9 +111,16 @@ class Bat(pygame.sprite.Sprite):
 
 
 class Game:
+    ball_speeds = {
+        "slow": 5,
+        "medium": 10,
+        "fast": 15
+    }
+
     pygame.init()
 
     def __init__(self):
+        print([(key, '') for key in self.ball_speeds.keys()])
         self.font_small = pygame.font.SysFont("Verdana", 20)
         self.width = 640
         self.height = 480
@@ -153,10 +160,11 @@ class Game:
         self.player2_score = 0
         self.winning_player = None
 
+        # Setup the game menu
         self.menu = pygame_menu.menu.Menu(300, 400, "Main Menu", theme=pygame_menu.themes.THEME_BLUE)
         self.menu.add_selector(
             "Speed: ",
-            [("Slow", 1), ("Medium", 2), ("Fast", 3)],
+            [(key, value) for key, value in self.ball_speeds.items()],
             onchange=lambda selected, value: print(
                 f"Selected {selected}, Value {value}"
             ),
