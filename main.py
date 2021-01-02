@@ -1,120 +1,12 @@
-import math
 import random
 import time
-from typing import Tuple, Sequence, List, Union
 
 import pygame
 import pygame_menu
-from pygame.constants import K_UP, K_DOWN, K_ESCAPE
+from pygame.constants import K_ESCAPE
 
-
-class Ball(pygame.sprite.Sprite):
-    def __init__(
-        self,
-        initial_velocity_vector: Sequence[int],
-        world_dimensions: Sequence[int],
-        speed: int = 10,
-    ):
-        super().__init__()
-        self.surf = pygame.Surface((10, 10))
-        self.surf.fill((255, 255, 255))
-        self.rect = self.surf.get_rect(
-            center=(int(world_dimensions[0] / 2), int(world_dimensions[1] / 2) - 10)
-        )
-        self.speed = speed
-        self.velocity: List[float] = self._normalise_velocity(
-            initial_velocity_vector, self.speed
-        )
-        self.containing_world_dimensions = world_dimensions
-
-    @staticmethod
-    def _normalise_velocity(
-        velocity: Sequence[Union[int, float]], speed: int
-    ) -> List[float]:
-        norm_factor = speed / math.sqrt(
-            sum([velocity_component ** 2 for velocity_component in velocity])
-        )
-        return [norm_factor * velocity_component for velocity_component in velocity]
-
-    def draw(self, surface: pygame.surface.Surface) -> None:
-        surface.blit(self.surf, self.rect)
-
-    def update(self) -> None:
-        # Handle ball going beyond the world in a single step
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > self.containing_world_dimensions[1]:
-            self.rect.bottom = self.containing_world_dimensions[1]
-
-        if (
-            self.rect.top == 0
-            or self.rect.bottom == self.containing_world_dimensions[1]
-        ):
-            self.velocity[1] = -self.velocity[1]
-
-        self.rect.move_ip((self.velocity[0], self.velocity[1]))
-
-    def on_collision(self) -> None:
-        self.velocity[0] = -self.velocity[0]
-
-    def is_out_of_bounds(self) -> bool:
-        return (
-            self.rect.right <= 0
-            or self.rect.left >= self.containing_world_dimensions[0]
-        )
-
-    def get_player_point(self) -> int:
-        if self.rect.right <= 0:
-            return -1
-        elif self.rect.left >= self.containing_world_dimensions[0]:
-            return 1
-        else:
-            return 0
-
-    def reset(self, initial_velocity_vector: Sequence[int]):
-        self.velocity = self._normalise_velocity(initial_velocity_vector, self.speed)
-        self.rect = self.surf.get_rect()
-        self.rect = self.surf.get_rect(
-            center=(
-                int(self.containing_world_dimensions[0] / 2),
-                int(self.containing_world_dimensions[1] / 2) - 10,
-            )
-        )
-
-    def update_speed(self, new_speed: int):
-        self.speed = new_speed
-        self.velocity = self._normalise_velocity(self.velocity, self.speed)
-
-
-class Bat(pygame.sprite.Sprite):
-    def __init__(
-        self,
-        initial_position: Tuple[int, int],
-        world_dimensions: Tuple[int, int],
-        key_up: pygame.constants = K_UP,
-        key_down: pygame.constants = K_DOWN,
-        speed: Union[float, int] = 5
-    ):
-        super().__init__()
-        self.surf = pygame.Surface((10, 30))
-        self.surf.fill((255, 255, 255))
-        self.rect = self.surf.get_rect(
-            center=(initial_position[0], initial_position[1])
-        )
-        self.world_dimensions = world_dimensions
-        self.key_up = key_up
-        self.key_down = key_down
-        self.speed = speed
-
-    def update(self) -> None:
-        pressed_keys = pygame.key.get_pressed()
-
-        if self.rect.top > 0:
-            if pressed_keys[self.key_up]:
-                self.rect.move_ip(0, -self.speed)
-        if self.rect.bottom < self.world_dimensions[1]:
-            if pressed_keys[self.key_down]:
-                self.rect.move_ip(0, self.speed)
+from pong.balls import Ball
+from pong.bats import Bat, ComputerBat
 
 
 class Game:
@@ -155,12 +47,17 @@ class Game:
             world_dimensions=(self.width, self.height),
         )
 
-        player2_bat = Bat(
+        player2_bat = ComputerBat(
             initial_position=(self.width, int(self.height / 2)),
             world_dimensions=(self.width, self.height),
-            key_up=pygame.constants.K_w,
-            key_down=pygame.constants.K_s,
+            game_ball=self.ball,
         )
+        # player2_bat = Bat(
+        #     initial_position=(self.width, int(self.height / 2)),
+        #     world_dimensions=(self.width, self.height),
+        #     key_up=pygame.constants.K_w,
+        #     key_down=pygame.constants.K_s,
+        # )
 
         self.all_sprites.add([self.ball, player1_bat, player2_bat])
         self.balls.add(self.ball)
@@ -175,6 +72,7 @@ class Game:
         self.menu = pygame_menu.menu.Menu(
             300, 400, "Main Menu", theme=pygame_menu.themes.THEME_BLUE
         )
+        self.menu.add_button("Play", lambda: self.menu.disable())
         self.menu.add_selector(
             "Ball Speed: ",
             self.ball_speeds,
@@ -187,8 +85,6 @@ class Game:
             onchange=lambda _, speed: self._update_bat_speeds(speed),
             default=1,
         )
-
-        self.menu.add_button("Play", lambda: self.menu.disable())
         self.menu.add_button(
             "Quit", lambda: pygame.event.post(pygame.event.Event(pygame.QUIT, {}))
         )
@@ -209,7 +105,6 @@ class Game:
         )
         pygame.display.update()
         time.sleep(2)
-
 
     @staticmethod
     def _get_random_vector(min: int = -5, max: int = 5, dimensions: int = 2):
@@ -260,7 +155,9 @@ class Game:
             str(self.player2_score), True, (255, 255, 255)
         )
         self._display_surf.blit(player1_score, (10, 10))
-        self._display_surf.blit(player2_score, (self.width - 20, 10))
+        self._display_surf.blit(
+            player2_score, (self.width - player2_score.get_rect().width - 10, 10)
+        )
 
         for sprite in self.all_sprites:
             self._display_surf.blit(sprite.surf, sprite.rect)
